@@ -348,55 +348,33 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end text-xs pt-1">
                         
-                        <!-- CUSTOM SEARCHABLE DROPDOWN -->
-                        <div class="relative">
-                            <label class="block font-bold text-emerald-200 mb-1 text-[11px]">JENIS SAMPAH</label>
-                            <button type="button" @click="openDropdown = !openDropdown" @click.away="openDropdown = false"
-                                    class="w-full bg-emerald-800/50 border border-emerald-700/80 rounded-xl p-2.5 text-left text-white flex justify-between items-center focus:outline-none focus:border-emerald-400 hover:bg-emerald-800/80 cursor-pointer text-xs transition">
-                                <span x-text="pilihanNama" class="truncate mr-2"></span>
-                                <i class="fas fa-chevron-down text-[10px] transition-transform duration-200 shrink-0" :class="openDropdown ? 'rotate-180' : ''"></i>
-                            </button>
+             <!-- CUSTOM SEARCHABLE DROPDOWN (Tambahkan z-50 di wrapper-nya) -->
+                <div class="relative z-50">
+                    <label class="block font-bold text-emerald-200 mb-1 text-[11px]">JENIS SAMPAH</label>
+                    <button type="button" @click="openDropdown = !openDropdown" @click.away="openDropdown = false"
+                            class="w-full bg-emerald-800/50 border border-emerald-700/80 rounded-xl p-2.5 text-left text-white flex justify-between items-center focus:outline-none focus:border-emerald-400 hover:bg-emerald-800/80 cursor-pointer text-xs transition">
+                        <span x-text="pilihanNama" class="truncate mr-2"></span>
+                        <i class="fas fa-chevron-down text-[10px] transition-transform duration-200 shrink-0" :class="openDropdown ? 'rotate-180' : ''"></i>
+                    </button>
 
-                            <div x-show="openDropdown" x-transition 
-                                 class="absolute z-35 mt-1 w-full bg-emerald-900 border border-emerald-700 rounded-xl shadow-xl max-h-56 overflow-y-auto p-2 space-y-1 text-xs">
-                                <div class="sticky top-0 bg-emerald-900 pb-1.5">
-                                    <input type="text" x-model="search" placeholder="Cari nama sampah..." 
-                                           class="w-full bg-emerald-950/80 border border-emerald-700 rounded-lg p-2 text-white placeholder-emerald-400/60 focus:outline-none focus:border-emerald-400 text-xs">
-                                </div>
-                                <div class="space-y-0.5">
-                                    <template x-for="item in filteredSampah" :key="item.id">
-                                        <button type="button" @click="pilih(item)" 
-                                                class="w-full text-left p-2 hover:bg-emerald-800 rounded-lg transition text-emerald-100 flex justify-between items-center cursor-pointer text-xs">
-                                            <span x-text="'📦 ' + item.nama" class="truncate mr-2"></span>
-                                            <span class="font-bold text-emerald-300 text-[11px] shrink-0" x-text="'Rp ' + Intl.NumberFormat('id-ID').format(item.harga)"></span>
-                                        </button>
-                                    </template>
-                                    <div x-show="filteredSampah.length === 0" class="text-center py-3 text-emerald-400/60 italic text-[11px]">
-                                        Sampah tidak ditemukan...
-                                    </div>
-                                </div>
-                            </div>
+                    <!-- UBAH z-35 MENJADI z-50 DI SINI -->
+                    <div x-show="openDropdown" x-transition 
+                        class="absolute z-50 mt-1 w-full bg-emerald-900 border border-emerald-700 rounded-xl shadow-xl max-h-56 overflow-y-auto p-2 space-y-1 text-xs">
+                        <div class="sticky top-0 bg-emerald-900 pb-1.5">
+                            <input type="text" x-model="search" placeholder="Cari nama sampah..." 
+                                class="w-full bg-emerald-950/80 border border-emerald-700 rounded-lg p-2 text-white placeholder-emerald-400/60 focus:outline-none focus:border-emerald-400 text-xs">
                         </div>
-
-                        <!-- Input Perkiraan Berat -->
-                        <div>
-                            <label class="block font-bold text-emerald-200 mb-1 text-[11px]">PERKIRAAN BERAT</label>
-                            <div class="relative">
-                                <input type="number" x-model.number="berat" @input="if(berat < 0 || isNaN(berat)) berat = 0" min="0" placeholder="0" 
-                                       class="w-full bg-emerald-800/50 border border-emerald-700/80 rounded-xl p-2.5 text-white pr-8 focus:outline-none focus:border-emerald-400 text-xs">
-                                <span class="absolute right-3 top-2.5 font-bold text-emerald-400">Kg</span>
+                        <div class="space-y-0.5">
+                            <template x-for="item in filteredSampah" :key="item.id">
+                                <button type="button" @click="pilih(item)" 
+                                        class="w-full text-left p-2 hover:bg-emerald-800 rounded-lg transition text-emerald-100 flex justify-between items-center cursor-pointer text-xs">
+                                    <span x-text="'📦 ' + item.nama" class="truncate mr-2"></span>
+                                    <span class="font-bold text-emerald-300 text-[11px] shrink-0" x-text="'Rp ' + Intl.NumberFormat('id-ID').format(item.harga)"></span>
+                                </button>
+                            </template>
+                            <div x-show="filteredSampah.length === 0" class="text-center py-3 text-emerald-400/60 italic text-[11px]">
+                                Sampah tidak ditemukan...
                             </div>
-                        </div>
-
-                        <!-- Live Output -->
-                        <div class="bg-emerald-950/70 border border-emerald-800 p-3 rounded-xl flex flex-col items-center justify-center min-h-[48px] shadow-inner">
-                            <span class="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">Estimasi Saldo</span>
-                            <span class="text-lg font-black text-emerald-300">
-                                Rp <span x-text="Intl.NumberFormat('id-ID').format(berat * hargaPerKg)">0</span>
-                            </span>
-                            <button @click="berat = 0" class="text-[9px] text-emerald-400/60 hover:text-emerald-300 underline mt-0.5 cursor-pointer transition">
-                                Reset Hitungan
-                            </button>
                         </div>
                     </div>
                 </div>
