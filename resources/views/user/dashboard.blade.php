@@ -311,7 +311,7 @@
                 <div data-aos="fade-right" data-aos-duration="900"
                      class="bg-[#044537] text-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 space-y-4 relative overflow-hidden" 
                      x-data="{ 
-                        berat: 1, 
+                        berat: 0, 
                         hargaPerKg: 3000,
                         search: '',
                         openDropdown: false,
@@ -333,14 +333,10 @@
                             this.hargaPerKg = Number(item.harga) || 0;
                             this.openDropdown = false;
                             this.search = '';
-                        },
-                        get totalEstimasi() {
-                            return (Number(this.berat) || 0) * this.hargaPerKg;
                         }
                      }"
                      x-init="if(listSampah.length > 0) { pilih(listSampah[0]); }">
                     
-                    <!-- HEADER KALKULATOR -->
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="text-xs font-black uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
@@ -350,59 +346,35 @@
                         </div>
                     </div>
 
-                    <!-- FORM INPUT & DROPDOWN -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start text-xs pt-1">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end text-xs pt-1">
                         
-                        <!-- 1. CUSTOM SEARCHABLE DROPDOWN -->
-                        <div class="relative z-50">
-                            <label class="block font-bold text-emerald-200 mb-1 text-[11px]">JENIS SAMPAH</label>
-                            <button type="button" @click="openDropdown = !openDropdown" @click.away="openDropdown = false"
-                                    class="w-full bg-emerald-800/50 border border-emerald-700/80 rounded-xl p-2.5 text-left text-white flex justify-between items-center focus:outline-none focus:border-emerald-400 hover:bg-emerald-800/80 cursor-pointer text-xs transition">
-                                <span x-text="pilihanNama" class="truncate mr-2"></span>
-                                <i class="fas fa-chevron-down text-[10px] transition-transform duration-200 shrink-0" :class="openDropdown ? 'rotate-180' : ''"></i>
-                            </button>
+             <!-- CUSTOM SEARCHABLE DROPDOWN (Tambahkan z-50 di wrapper-nya) -->
+                <div class="relative z-50">
+                    <label class="block font-bold text-emerald-200 mb-1 text-[11px]">JENIS SAMPAH</label>
+                    <button type="button" @click="openDropdown = !openDropdown" @click.away="openDropdown = false"
+                            class="w-full bg-emerald-800/50 border border-emerald-700/80 rounded-xl p-2.5 text-left text-white flex justify-between items-center focus:outline-none focus:border-emerald-400 hover:bg-emerald-800/80 cursor-pointer text-xs transition">
+                        <span x-text="pilihanNama" class="truncate mr-2"></span>
+                        <i class="fas fa-chevron-down text-[10px] transition-transform duration-200 shrink-0" :class="openDropdown ? 'rotate-180' : ''"></i>
+                    </button>
 
-                            <!-- DROPDOWN LIST -->
-                            <div x-show="openDropdown" x-transition 
-                                 class="absolute z-50 mt-1 w-full bg-emerald-900 border border-emerald-700 rounded-xl shadow-xl max-h-56 overflow-y-auto p-2 space-y-1 text-xs">
-                                <div class="sticky top-0 bg-emerald-900 pb-1.5">
-                                    <input type="text" x-model="search" placeholder="Cari nama sampah..." 
-                                           class="w-full bg-emerald-950/80 border border-emerald-700 rounded-lg p-2 text-white placeholder-emerald-400/60 focus:outline-none focus:border-emerald-400 text-xs">
-                                </div>
-                                <div class="space-y-0.5">
-                                    <template x-for="item in filteredSampah" :key="item.id">
-                                        <button type="button" @click="pilih(item)" 
-                                                class="w-full text-left p-2 hover:bg-emerald-800 rounded-lg transition text-emerald-100 flex justify-between items-center cursor-pointer text-xs">
-                                            <span x-text="'📦 ' + item.nama" class="truncate mr-2"></span>
-                                            <span class="font-bold text-emerald-300 text-[11px] shrink-0" x-text="'Rp ' + Intl.NumberFormat('id-ID').format(item.harga)"></span>
-                                        </button>
-                                    </template>
-                                    <div x-show="filteredSampah.length === 0" class="text-center py-3 text-emerald-400/60 italic text-[11px]">
-                                        Sampah tidak ditemukan...
-                                    </div>
-                                </div>
+                    <!-- UBAH z-35 MENJADI z-50 DI SINI -->
+                    <div x-show="openDropdown" x-transition 
+                        class="absolute z-50 mt-1 w-full bg-emerald-900 border border-emerald-700 rounded-xl shadow-xl max-h-56 overflow-y-auto p-2 space-y-1 text-xs">
+                        <div class="sticky top-0 bg-emerald-900 pb-1.5">
+                            <input type="text" x-model="search" placeholder="Cari nama sampah..." 
+                                class="w-full bg-emerald-950/80 border border-emerald-700 rounded-lg p-2 text-white placeholder-emerald-400/60 focus:outline-none focus:border-emerald-400 text-xs">
+                        </div>
+                        <div class="space-y-0.5">
+                            <template x-for="item in filteredSampah" :key="item.id">
+                                <button type="button" @click="pilih(item)" 
+                                        class="w-full text-left p-2 hover:bg-emerald-800 rounded-lg transition text-emerald-100 flex justify-between items-center cursor-pointer text-xs">
+                                    <span x-text="'📦 ' + item.nama" class="truncate mr-2"></span>
+                                    <span class="font-bold text-emerald-300 text-[11px] shrink-0" x-text="'Rp ' + Intl.NumberFormat('id-ID').format(item.harga)"></span>
+                                </button>
+                            </template>
+                            <div x-show="filteredSampah.length === 0" class="text-center py-3 text-emerald-400/60 italic text-[11px]">
+                                Sampah tidak ditemukan...
                             </div>
-                        </div>
-
-                        <!-- 2. INPUT BERAT SAMPAH (KG) -->
-                        <div>
-                            <label class="block font-bold text-emerald-200 mb-1 text-[11px]">ESTIMASI BERAT (KG)</label>
-                            <div class="relative">
-                                <input type="number" min="0.1" step="0.1" x-model="berat" placeholder="Contoh: 2.5"
-                                       class="w-full bg-emerald-800/50 border border-emerald-700/80 rounded-xl p-2.5 text-white font-bold placeholder-emerald-400/50 focus:outline-none focus:border-emerald-400 text-xs transition pr-10">
-                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-300">Kg</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- HASIL ESTIMASI PENAGIHAN / PENDAPATAN -->
-                    <div class="mt-4 pt-3 border-t border-emerald-700/60 flex items-center justify-between bg-emerald-900/40 p-3 rounded-xl border border-emerald-800/50">
-                        <div>
-                            <span class="text-[10px] text-emerald-300/80 uppercase font-bold tracking-wider block">Estimasi Pendapatan:</span>
-                            <span class="text-xs text-emerald-200" x-text="berat + ' Kg × Rp ' + Intl.NumberFormat('id-ID').format(hargaPerKg)"></span>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-xl font-black text-amber-300" x-text="'Rp ' + Intl.NumberFormat('id-ID').format(totalEstimasi)"></span>
                         </div>
                     </div>
                 </div>
