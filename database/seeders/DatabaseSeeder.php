@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\Nasabah;
 
@@ -14,12 +15,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Buat User Login untuk Admin (PENTING untuk Login Admin)
+        // 1. Buat User Login untuk Admin
         User::updateOrCreate(
             ['email' => 'admin@banksampah.com'],
             [
                 'name' => 'Administrator',
-                'password' => Hash::make('password'), // Password login Admin
+                'password' => Hash::make('password'),
                 'role' => 'admin',
             ]
         );
@@ -29,7 +30,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'warga@gmail.com'],
             [
                 'name' => 'Warga Testing',
-                'password' => Hash::make('warga123'), // Password login Warga
+                'password' => Hash::make('warga123'),
                 'role' => 'nasabah',
             ]
         );
@@ -46,5 +47,46 @@ class DatabaseSeeder extends Seeder
                 'no_hp' => '081234567890',
             ]
         );
+
+        // 4. Seed Kategori Sampah (Diubah: nama_kategori -> nama)
+        DB::table('kategori_sampah')->updateOrInsert(
+            ['id' => 1],
+            [
+                'nama' => 'Anorganik',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        // 5. Seed Jenis Sampah
+        $jenisSampahData = [
+            [
+                'id' => 1,
+                'kategori_id' => 1,
+                'nama' => 'Kertas / Kardus',
+                'harga_beli' => 1500,
+                'harga_per_kg' => 2000,
+                'satuan' => 'Kg',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 7, // Disesuaikan agar transaksi ID 7 tidak lagi error
+                'kategori_id' => 1,
+                'nama' => 'Botol Plastik',
+                'harga_beli' => 2500,
+                'harga_per_kg' => 3200,
+                'satuan' => 'Kg',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ];
+
+        foreach ($jenisSampahData as $data) {
+            DB::table('jenis_sampah')->updateOrInsert(
+                ['id' => $data['id']],
+                $data
+            );
+        }
     }
 }
