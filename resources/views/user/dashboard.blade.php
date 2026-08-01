@@ -200,7 +200,6 @@
                 <form action="{{ route('logout') }}" method="POST" class="inline">
                     @csrf
                     <button type="submit" title="Keluar dari sistem" class="bg-[#05583f] hover:bg-[#044537] active:scale-95 text-white w-10 h-10 rounded-2xl flex items-center justify-center transition shadow-xs hover:shadow-md cursor-pointer group">
-                        <!-- SVG Ikon Solid Log Out -->
                         <svg class="w-5 h-5 text-white group-hover:translate-x-0.5 transition-transform" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path d="M5 3a2 2 0 00-2 2v14a2 2 0 002 2h4a1 1 0 100-2H5V5h4a1 1 0 100-2H5z" />
                             <path fill-rule="evenodd" d="M13.293 7.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L15.586 13H9a1 1 0 110-2h6.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -291,7 +290,7 @@
                 </a>
             </div>
 
-            <!-- AKSI CEPAT (Hanya Cek Harga) -->
+            <!-- AKSI CEPAT (Cek Harga) -->
             <div class="flex items-center gap-3 w-full md:w-auto pb-2 md:pb-0 shrink-0">
                 <a href="{{ route('user.katalog') }}" 
                    class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition duration-200 flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap shadow-xs hover:shadow-md hover:shadow-emerald-600/20 group">
@@ -311,7 +310,7 @@
                 <div data-aos="fade-right" data-aos-duration="900"
                      class="bg-[#044537] text-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 space-y-4 relative overflow-hidden" 
                      x-data="{ 
-                        berat: 0, 
+                        berat: 1, 
                         hargaPerKg: 3000,
                         search: '',
                         openDropdown: false,
@@ -348,34 +347,49 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end text-xs pt-1">
                         
-             <!-- CUSTOM SEARCHABLE DROPDOWN (Tambahkan z-50 di wrapper-nya) -->
-                <div class="relative z-50">
-                    <label class="block font-bold text-emerald-200 mb-1 text-[11px]">JENIS SAMPAH</label>
-                    <button type="button" @click="openDropdown = !openDropdown" @click.away="openDropdown = false"
-                            class="w-full bg-emerald-800/50 border border-emerald-700/80 rounded-xl p-2.5 text-left text-white flex justify-between items-center focus:outline-none focus:border-emerald-400 hover:bg-emerald-800/80 cursor-pointer text-xs transition">
-                        <span x-text="pilihanNama" class="truncate mr-2"></span>
-                        <i class="fas fa-chevron-down text-[10px] transition-transform duration-200 shrink-0" :class="openDropdown ? 'rotate-180' : ''"></i>
-                    </button>
+                        <!-- CUSTOM SEARCHABLE DROPDOWN -->
+                        <div class="relative z-50">
+                            <label class="block font-bold text-emerald-200 mb-1 text-[11px]">JENIS SAMPAH</label>
+                            <button type="button" @click="openDropdown = !openDropdown" @click.away="openDropdown = false"
+                                    class="w-full bg-emerald-800/50 border border-emerald-700/80 rounded-xl p-2.5 text-left text-white flex justify-between items-center focus:outline-none focus:border-emerald-400 hover:bg-emerald-800/80 cursor-pointer text-xs transition">
+                                <span x-text="pilihanNama" class="truncate mr-2"></span>
+                                <i class="fas fa-chevron-down text-[10px] transition-transform duration-200 shrink-0" :class="openDropdown ? 'rotate-180' : ''"></i>
+                            </button>
 
-                    <!-- UBAH z-35 MENJADI z-50 DI SINI -->
-                    <div x-show="openDropdown" x-transition 
-                        class="absolute z-50 mt-1 w-full bg-emerald-900 border border-emerald-700 rounded-xl shadow-xl max-h-56 overflow-y-auto p-2 space-y-1 text-xs">
-                        <div class="sticky top-0 bg-emerald-900 pb-1.5">
-                            <input type="text" x-model="search" placeholder="Cari nama sampah..." 
-                                class="w-full bg-emerald-950/80 border border-emerald-700 rounded-lg p-2 text-white placeholder-emerald-400/60 focus:outline-none focus:border-emerald-400 text-xs">
-                        </div>
-                        <div class="space-y-0.5">
-                            <template x-for="item in filteredSampah" :key="item.id">
-                                <button type="button" @click="pilih(item)" 
-                                        class="w-full text-left p-2 hover:bg-emerald-800 rounded-lg transition text-emerald-100 flex justify-between items-center cursor-pointer text-xs">
-                                    <span x-text="'📦 ' + item.nama" class="truncate mr-2"></span>
-                                    <span class="font-bold text-emerald-300 text-[11px] shrink-0" x-text="'Rp ' + Intl.NumberFormat('id-ID').format(item.harga)"></span>
-                                </button>
-                            </template>
-                            <div x-show="filteredSampah.length === 0" class="text-center py-3 text-emerald-400/60 italic text-[11px]">
-                                Sampah tidak ditemukan...
+                            <div x-show="openDropdown" x-transition 
+                                class="absolute z-50 mt-1 w-full bg-emerald-900 border border-emerald-700 rounded-xl shadow-xl max-h-56 overflow-y-auto p-2 space-y-1 text-xs">
+                                <div class="sticky top-0 bg-emerald-900 pb-1.5">
+                                    <input type="text" x-model="search" placeholder="Cari nama sampah..." 
+                                        class="w-full bg-emerald-950/80 border border-emerald-700 rounded-lg p-2 text-white placeholder-emerald-400/60 focus:outline-none focus:border-emerald-400 text-xs">
+                                </div>
+                                <div class="space-y-0.5">
+                                    <template x-for="item in filteredSampah" :key="item.id">
+                                        <button type="button" @click="pilih(item)" 
+                                                class="w-full text-left p-2 hover:bg-emerald-800 rounded-lg transition text-emerald-100 flex justify-between items-center cursor-pointer text-xs">
+                                            <span x-text="'📦 ' + item.nama" class="truncate mr-2"></span>
+                                            <span class="font-bold text-emerald-300 text-[11px] shrink-0" x-text="'Rp ' + Intl.NumberFormat('id-ID').format(item.harga)"></span>
+                                        </button>
+                                    </template>
+                                    <div x-show="filteredSampah.length === 0" class="text-center py-3 text-emerald-400/60 italic text-[11px]">
+                                        Sampah tidak ditemukan...
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        <!-- INPUT BERAT SAMPAH -->
+                        <div>
+                            <label class="block font-bold text-emerald-200 mb-1 text-[11px]">BERAT (KG)</label>
+                            <input type="number" min="0.1" step="0.1" x-model.number="berat" placeholder="0" 
+                                   class="w-full bg-emerald-800/50 border border-emerald-700/80 rounded-xl p-2 text-white font-bold focus:outline-none focus:border-emerald-400 text-xs">
+                        </div>
+
+                        <!-- TOTAL ESTIMASI RUPIAH -->
+                        <div class="bg-emerald-900/60 border border-emerald-700/80 rounded-xl p-2.5 text-right">
+                            <span class="block text-[9px] text-emerald-300 font-bold uppercase">Estimasi Hasil</span>
+                            <span class="text-sm font-black text-amber-300" x-text="'Rp ' + Intl.NumberFormat('id-ID').format(berat * hargaPerKg)"></span>
+                        </div>
+
                     </div>
                 </div>
 
