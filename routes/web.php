@@ -57,7 +57,8 @@ Route::post('/forgot-password', function (Request $request) {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
-    Route::get('/nasabah-ui', [NasabahController::class, 'index'])->name('nasabah-ui.index');
+    // Menerima GET & POST untuk mencegah error 405 Method Not Allowed
+    Route::match(['get', 'post'], '/nasabah-ui', [NasabahController::class, 'index'])->name('nasabah-ui.index');
 });
 
 
