@@ -85,15 +85,17 @@ Route::middleware(['auth', 'role:admin,petugas'])->group(function () {
     Route::post('/admin/ganti-password', [PasswordController::class, 'updatePasswordAdmin'])->name('password.admin.update');
 
     // ----------------------------------------------------------------------
-    // 👤 UI Data Nasabah (Custom Endpoints)
-    // ----------------------------------------------------------------------
-    Route::get('/nasabah-ui', [NasabahController::class, 'index'])->name('nasabah-ui.index');
-    Route::get('/nasabah-ui/tambah', [NasabahController::class, 'create'])->name('nasabah-ui.create');
-    Route::post('/nasabah-ui/tambah', [NasabahController::class, 'store'])->name('nasabah-ui.store');
-    Route::get('/nasabah-ui/{nasabah}/edit', [NasabahController::class, 'edit'])->name('nasabah-ui.edit');
-    Route::put('/nasabah-ui/{nasabah}', [NasabahController::class, 'update'])->name('nasabah-ui.update');
-    Route::delete('/nasabah-ui/{nasabah}', [NasabahController::class, 'destroy'])->name('nasabah-ui.destroy');
-    Route::get('/nasabah-ui/delete/{nasabah}', [NasabahController::class, 'destroy']); 
+// 👤 UI Data Nasabah (Custom Endpoints)
+// ----------------------------------------------------------------------
+// Diubah menjadi Route::match agar aman jika ada request POST pengalihan dari form
+Route::match(['get', 'post'], '/nasabah-ui', [NasabahController::class, 'index'])->name('nasabah-ui.index');
+
+Route::get('/nasabah-ui/tambah', [NasabahController::class, 'create'])->name('nasabah-ui.create');
+Route::post('/nasabah-ui/tambah', [NasabahController::class, 'store'])->name('nasabah-ui.store');
+Route::get('/nasabah-ui/{nasabah}/edit', [NasabahController::class, 'edit'])->name('nasabah-ui.edit');
+Route::put('/nasabah-ui/{nasabah}', [NasabahController::class, 'update'])->name('nasabah-ui.update');
+Route::delete('/nasabah-ui/{nasabah}', [NasabahController::class, 'destroy'])->name('nasabah-ui.destroy');
+Route::get('/nasabah-ui/delete/{nasabah}', [NasabahController::class, 'destroy']);
 
     // ----------------------------------------------------------------------
     // 🗑️ UI Master Sampah / Kategori
