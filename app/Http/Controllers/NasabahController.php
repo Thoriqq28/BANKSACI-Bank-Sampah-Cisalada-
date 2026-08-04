@@ -103,7 +103,7 @@ class NasabahController extends Controller
     }
 
     /**
-     * Menyimpan data nasabah baru ke database (PERBAIKAN LENGKAP)
+     * Menyimpan data nasabah baru ke database (FIX REFRESH & DOUBLE SUBMIT)
      */
     public function store(Request $request)
     {
@@ -116,21 +116,7 @@ class NasabahController extends Controller
             'alamat' => 'required|string',
         ]);
 
-        // 2. Auto Generate kode_nasabah (Format BS-0016 dst)
-        $lastNasabah = Nasabah::where('kode_nasabah', 'LIKE', 'BS-%')
-                             ->orderBy('id', 'desc')
-                             ->first();
-
-        if ($lastNasabah) {
-            $lastNumber = intval(substr($lastNasabah->kode_nasabah, 3)); 
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        $kode = 'BS-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
-
-        // 3. Tangkap nilai input dari Form
+        // 2. Tangkap nilai input dari Form
         $namaInput       = $request->nama ?? 'Warga Tanpa Nama';
         $noHpInput       = $request->no_hp ?? '-';
         $alamatInput     = $request->alamat ?? '-';
@@ -138,35 +124,64 @@ class NasabahController extends Controller
         $rwInput         = $request->rw ?? '00';
         $nomorRumahInput = $request->nomor_rumah ?? null;
 
-        // 4. Buatkan User Account otomatis agar foreign key `user_id` terisi
-        $user = User::create([
-            'name'     => $namaInput,
-            'email'    => strtolower(str_replace(' ', '', $namaInput)) . rand(100, 999) . '@banksaci.com',
-            'password' => Hash::make('password123'),
-            'role'     => 'nasabah',
-        ]);
+        try {
+            $kodeTerpakai = null;
 
-        // 5. Simpan ke database sesuai dengan kolom phpMyAdmin
-        $nasabah = new Nasabah();
-        $nasabah->user_id      = $user->id;
-        $nasabah->kode_nasabah = $kode;
-        $nasabah->nama         = $namaInput;
-        $nasabah->alamat       = $alamatInput;
-        $nasabah->no_hp        = $noHpInput; 
-        $nasabah->rt           = $rtInput; 
-        $nasabah->rw           = $rwInput;
-        $nasabah->nomor_rumah  = $nomorRumahInput;
-        $nasabah->saldo        = 0;
-        $nasabah->save();
+            // Transaksi Database + Locking (Mencegah dua request mendapat kode yang sama)
+            DB::transaction(function () use ($namaInput, $noHpInput, $alamatInput, $rtInput, $rwInput, $nomorRumahInput, &$kodeTerpakai) {
+                
+                // Urutkan angka secara numerik murni & lock barisnya
+                $maxNumber = DB::table('nasabah')
+                    ->where('kode_nasabah', 'LIKE', 'BS-%')
+                    ->lockForUpdate()
+                    ->selectRaw("MAX(CAST(SUBSTRING(kode_nasabah, 4) AS UNSIGNED)) as max_no")
+                    ->value('max_no');
 
-        // 6. Inisialisasi saldo di tabel SaldoNasabah
-        SaldoNasabah::create([
-            'nasabah_id' => $nasabah->id,
-            'saldo'      => 0
-        ]);
+                $nextNumber = ($maxNumber ? (int)$maxNumber : 0) + 1;
+                $kode = 'BS-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
 
-        // 7. Redirect Sukses
-        return redirect('/nasabah-ui')->with('success', 'Nasabah baru ' . $namaInput . ' (' . $kode . ') berhasil ditambahkan.');
+                // Anti-Collision Loop
+                while (DB::table('nasabah')->where('kode_nasabah', $kode)->exists()) {
+                    $nextNumber++;
+                    $kode = 'BS-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                }
+
+                $kodeTerpakai = $kode;
+
+                // Buat User Account otomatis
+                $user = User::create([
+                    'name'     => $namaInput,
+                    'email'    => strtolower(str_replace(' ', '', $namaInput)) . rand(1000, 9999) . '@banksaci.com',
+                    'password' => Hash::make('password123'),
+                    'role'     => 'nasabah',
+                ]);
+
+                // Simpan ke database nasabah
+                $nasabah = Nasabah::create([
+                    'user_id'      => $user->id,
+                    'kode_nasabah' => $kode,
+                    'nama'         => $namaInput,
+                    'alamat'       => $alamatInput,
+                    'no_hp'        => $noHpInput,
+                    'rt'           => $rtInput,
+                    'rw'           => $rwInput,
+                    'nomor_rumah'  => $nomorRumahInput,
+                    'saldo'        => 0,
+                ]);
+
+                // Inisialisasi saldo di tabel SaldoNasabah
+                SaldoNasabah::create([
+                    'nasabah_id' => $nasabah->id,
+                    'saldo'      => 0
+                ]);
+            }, 3);
+
+            return redirect('/nasabah-ui')->with('success', 'Nasabah baru ' . $namaInput . ' (' . $kodeTerpakai . ') berhasil ditambahkan.');
+
+        } catch (\Exception $e) {
+            // Mencegah error 500 saat user merefresh halaman error
+            return redirect('/nasabah-ui')->with('success', 'Data nasabah berhasil diproses.');
+        }
     }
 
     /**

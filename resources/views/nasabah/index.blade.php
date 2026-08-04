@@ -5,6 +5,31 @@
 
 @section('content')
 
+    <!-- Alert Notifikasi Sukses / Error -->
+    @if(session('success'))
+        <div class="mb-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-check-circle text-emerald-500"></i>
+                <span>{{ session('success') }}</span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    @endif
+
+    @if($errors->has('error'))
+        <div class="mb-4 p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-exclamation-circle text-rose-500"></i>
+                <span>{{ $errors->first('error') }}</span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    @endif
+
     <!-- Header & Fitur Pencarian + Tombol Tambah Nasabah -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
@@ -28,7 +53,7 @@
             </div>
 
             <!-- Tombol Tambah Nasabah -->
-            <a href="/nasabah/create" class="inline-flex items-center gap-2 bg-[#00a877] hover:bg-[#008f64] text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 whitespace-nowrap">
+            <a href="{{ route('nasabah.create') }}" class="inline-flex items-center gap-2 bg-[#00a877] hover:bg-[#008f64] text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 whitespace-nowrap">
                 <i class="fas fa-plus"></i> Tambah Nasabah
             </a>
         </div>
@@ -48,7 +73,6 @@
                         <th class="py-4 px-6 text-center w-48">AKSI</th>
                     </tr>
                 </thead>
-                <!-- Diberi ID bodyNasabah agar dibaca JavaScript -->
                 <tbody id="bodyNasabah" class="divide-y divide-gray-100 text-sm text-gray-600 font-medium">
                     @forelse($nasabahs ?? $nasabahList ?? $nasabah ?? [] as $index => $item)
                         <tr class="transition-colors duration-200 hover:bg-emerald-50/40">
@@ -83,14 +107,14 @@
                             <!-- 6. Aksi CRUD -->
                             <td class="py-4 px-6 text-center whitespace-nowrap">
                                 <div class="inline-flex items-center justify-center gap-1.5">
-                                    <a href="/nasabah/{{ $item->id }}" class="bg-emerald-50 text-[#00a877] hover:bg-emerald-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105">
+                                    <a href="{{ route('nasabah.show', $item->id) }}" class="bg-emerald-50 text-[#00a877] hover:bg-emerald-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105">
                                         Detail
                                     </a>
-                                    <a href="/nasabah/{{ $item->id }}/edit" class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105">
+                                    <a href="{{ route('nasabah.edit', $item->id) }}" class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105">
                                         Edit
                                     </a>
                                     
-                                    <form action="/nasabah/{{ $item->id }}" method="POST" class="inline m-0" onsubmit="return confirm('Yakin ingin menghapus nasabah ini?')">
+                                    <form action="{{ route('nasabah.destroy', $item->id) }}" method="POST" class="inline m-0" onsubmit="return confirm('Yakin ingin menghapus nasabah ini?')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="bg-[#fef2f2] text-rose-500 hover:bg-rose-100 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105 cursor-pointer">
@@ -101,7 +125,6 @@
                             </td>
                         </tr>
                     @empty
-                        <!-- Tampilan Kosong -->
                         <tr id="emptyRow">
                             <td colspan="6" class="py-12 text-center text-gray-400">
                                 <i class="fas fa-users-slash text-3xl mb-2 block opacity-50"></i>
