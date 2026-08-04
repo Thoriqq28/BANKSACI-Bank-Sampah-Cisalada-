@@ -10,7 +10,7 @@
 </head>
 <body class="bg-slate-100 font-sans antialiased min-h-screen flex" x-data="{ sidebarOpen: false }">
 
-    <!-- SIDEBAR DARI FILE MASTER (SAMA DENGAN PAGE INDEX) -->
+    <!-- SIDEBAR -->
     @include('layouts.sidebar')
 
     <!-- Overlay Mobile -->
@@ -18,7 +18,7 @@
          class="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs md:hidden"
          style="display: none;"></div>
 
-    <!-- MAIN CONTENT (SAMA DENGAN MASTER DATA NASABAH) -->
+    <!-- MAIN CONTENT -->
     <main class="flex-1 p-6 md:p-8 min-w-0 transition-all duration-300">
         
         <!-- HEADER BREADCRUMB -->
@@ -56,7 +56,7 @@
                 </a>
             </div>
 
-            <!-- Form Body -->
+            <!-- Form Body (Action mengarah ke /nasabah-ui dengan POST) -->
             <form action="/nasabah-ui" method="POST" class="p-6 md:p-8 space-y-5">
                 @csrf
                 
@@ -65,7 +65,7 @@
                     <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
                         NAMA LENGKAP NASABAH <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" name="nama" required placeholder="Contoh: Ahmad Subagja"
+                    <input type="text" name="nama" value="{{ old('nama') }}" required placeholder="Contoh: Ahmad Subagja"
                            class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs md:text-sm rounded-xl p-3 focus:outline-none focus:border-emerald-500 focus:bg-white transition">
                 </div>
 
@@ -75,14 +75,14 @@
                         <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
                             NO. HANDPHONE / WA <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" name="no_hp" required placeholder="Contoh: 0812xxxx"
+                        <input type="text" name="no_hp" value="{{ old('no_hp') }}" required placeholder="Contoh: 0812xxxx"
                                class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs md:text-sm rounded-xl p-3 focus:outline-none focus:border-emerald-500 focus:bg-white transition">
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
                             ID REKENING (OTOMATIS)
                         </label>
-                        <input type="text" disabled placeholder="SACI-XXX (Otomatis Sistem)"
+                        <input type="text" disabled placeholder="BS-XXXX (Otomatis Sistem)"
                                class="w-full bg-slate-100 border border-slate-200 text-slate-400 text-xs md:text-sm font-mono rounded-xl p-3 cursor-not-allowed">
                     </div>
                 </div>
@@ -93,21 +93,21 @@
                         <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
                             RT <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" name="rt" required placeholder="01"
+                        <input type="text" name="rt" value="{{ old('rt') }}" required placeholder="01"
                                class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs md:text-sm rounded-xl p-3 focus:outline-none focus:border-emerald-500 focus:bg-white transition text-center">
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
                             RW <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" name="rw" required placeholder="02"
+                        <input type="text" name="rw" value="{{ old('rw') }}" required placeholder="02"
                                class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs md:text-sm rounded-xl p-3 focus:outline-none focus:border-emerald-500 focus:bg-white transition text-center">
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
                             NO. RUMAH
                         </label>
-                        <input type="text" name="nomor_rumah" placeholder="12A (Opsional)"
+                        <input type="text" name="nomor_rumah" value="{{ old('nomor_rumah') }}" placeholder="12A (Opsional)"
                                class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs md:text-sm rounded-xl p-3 focus:outline-none focus:border-emerald-500 focus:bg-white transition text-center">
                     </div>
                 </div>
@@ -118,7 +118,7 @@
                         NAMA KAMPUNG / JALAN <span class="text-red-500">*</span>
                     </label>
                     <textarea name="alamat" rows="2" required placeholder="Contoh: Kp. Margaluyu"
-                              class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs md:text-sm rounded-xl p-3 focus:outline-none focus:border-emerald-500 focus:bg-white transition"></textarea>
+                              class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs md:text-sm rounded-xl p-3 focus:outline-none focus:border-emerald-500 focus:bg-white transition">{{ old('alamat') }}</textarea>
                 </div>
 
                 <!-- Footer Action Buttons -->

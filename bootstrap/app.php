@@ -3,8 +3,9 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Models\User;             // <-- Tambahkan baris ini
-use App\Observers\UserObserver;  // <-- Tambahkan baris ini
+use Illuminate\Http\Request; // <-- Import ini untuk trustProxies
+use App\Models\User;
+use App\Observers\UserObserver;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,6 +15,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
 
     ->withMiddleware(function (Middleware $middleware): void {
+        // PERBAIKAN CSRF 419 FOR RAILWAY HTTPS
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR |
+                     Request::HEADER_X_FORWARDED_HOST |
+                     Request::HEADER_X_FORWARDED_PORT |
+                     Request::HEADER_X_FORWARDED_PROTO
+        );
+
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
@@ -23,7 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
 
-    // <-- Tambahkan blok booted ini untuk mendaftarkan Observer
+    // Mendaftarkan Observer
     ->booted(function (): void {
         User::observe(UserObserver::class);
     })->create();

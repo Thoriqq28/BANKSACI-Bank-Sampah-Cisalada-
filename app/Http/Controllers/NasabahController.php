@@ -6,9 +6,11 @@ use App\Models\Nasabah;
 use App\Models\SaldoNasabah;
 use App\Models\Setoran;
 use App\Models\Penarikan;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Hash;
 
 // IMPORT UNTUK EXCEL
 use App\Exports\NasabahExport;
@@ -25,7 +27,6 @@ class NasabahController extends Controller
         $nasabahs = Nasabah::orderBy('created_at', 'desc')->get(); 
         
         // AUTO-SYNC REAL-TIME:
-        // Memastikan nilai kolom `saldo` di database 100% akurat sebelum dikirim ke view
         foreach ($nasabahs as $nasabah) {
             // 1. Hitung total setoran
             $totalSetoran = Setoran::where('nasabah_id', $nasabah->id)->sum('total_harga');
@@ -35,23 +36,22 @@ class NasabahController extends Controller
                 ->whereRaw('LOWER(status) = ?', ['selesai'])
                 ->sum('jumlah');
 
-            // 3. Hitung saldo riil (Pending & Cancel DIABAIKAN)
+            // 3. Hitung saldo riil
             $saldoRealtime = max(0, $totalSetoran - $totalPenarikanSelesai);
 
-            // 4. Jika nilai di DB berbeda, update DB secara otomatis
+            // 4. Jika nilai di DB berbeda, update DB
             if ($nasabah->saldo != $saldoRealtime) {
                 $nasabah->saldo = $saldoRealtime;
                 $nasabah->save();
             }
 
-            // Juga update ke tabel SaldoNasabah jika terhubung
+            // Update ke tabel SaldoNasabah jika terhubung
             SaldoNasabah::updateOrCreate(
                 ['nasabah_id' => $nasabah->id],
                 ['saldo' => $saldoRealtime]
             );
         }
 
-        // Diarahkan ke view nasabah/index.blade.php
         return view('nasabah.index', compact('nasabahs'));
     }
 
@@ -69,16 +69,13 @@ class NasabahController extends Controller
      */
     public function show($id)
     {
-        // 1. Ambil data nasabah
         $nasabah = Nasabah::findOrFail($id);
 
-        // 2. Hitung total setoran nasabah ini
         $totalSetoran = DB::table('setorans')
             ->where('nasabah_id', $nasabah->id)
             ->orWhere('user_id', $nasabah->user_id ?? $nasabah->id)
             ->sum('total_harga');
 
-        // 3. Hitung total penarikan saldo yang SUDAH SELESAI
         $totalPenarikanSelesai = 0;
         if (Schema::hasTable('penarikans')) {
             $totalPenarikanSelesai = DB::table('penarikans')
@@ -87,10 +84,8 @@ class NasabahController extends Controller
                 ->sum('jumlah') ?? 0;
         }
 
-        // 4. Kalkulasi Saldo Real-Time
         $saldoSaatIni = max(0, $totalSetoran - $totalPenarikanSelesai);
 
-        // Update nilai saldo nasabah jika ada perbedaan
         if ($nasabah->saldo != $saldoSaatIni) {
             $nasabah->saldo = $saldoSaatIni;
             $nasabah->save();
@@ -108,17 +103,22 @@ class NasabahController extends Controller
     }
 
     /**
-     * Menyimpan data nasabah baru ke database
+     * Menyimpan data nasabah baru ke database (PERBAIKAN LENGKAP)
      */
     public function store(Request $request)
     {
+        // 1. Validasi Input
         $request->validate([
-            'alamat' => 'nullable|string',
+            'nama'   => 'required|string|max:255',
+            'no_hp'  => 'required|string|max:20',
+            'rt'     => 'required|string|max:10',
+            'rw'     => 'required|string|max:10',
+            'alamat' => 'required|string',
         ]);
 
-        // 1. Auto generate kode_nasabah secara urut berdasarkan kode terakhir (BS-xxxx)
+        // 2. Auto Generate kode_nasabah (Format BS-0016 dst)
         $lastNasabah = Nasabah::where('kode_nasabah', 'LIKE', 'BS-%')
-                             ->orderBy('kode_nasabah', 'desc')
+                             ->orderBy('id', 'desc')
                              ->first();
 
         if ($lastNasabah) {
@@ -130,30 +130,43 @@ class NasabahController extends Controller
 
         $kode = 'BS-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
 
-        // 2. DETEKSI ATRIBUT INPUT FORM
-        $namaInput   = $request->nama ?? $request->nama_lengkap ?? $request->nama_nasabah ?? 'Warga Tanpa Nama';
-        $noHpInput   = $request->nohp ?? $request->no_hp ?? $request->no_telp ?? $request->handphone ?? '-';
-        $alamatInput = $request->alamat ?? $request->alamat_kampung ?? '-';
+        // 3. Tangkap nilai input dari Form
+        $namaInput       = $request->nama ?? 'Warga Tanpa Nama';
+        $noHpInput       = $request->no_hp ?? '-';
+        $alamatInput     = $request->alamat ?? '-';
+        $rtInput         = $request->rt ?? '00';
+        $rwInput         = $request->rw ?? '00';
+        $nomorRumahInput = $request->nomor_rumah ?? null;
 
-        // 3. Simpan data ke database
+        // 4. Buatkan User Account otomatis agar foreign key `user_id` terisi
+        $user = User::create([
+            'name'     => $namaInput,
+            'email'    => strtolower(str_replace(' ', '', $namaInput)) . rand(100, 999) . '@banksaci.com',
+            'password' => Hash::make('password123'),
+            'role'     => 'nasabah',
+        ]);
+
+        // 5. Simpan ke database sesuai dengan kolom phpMyAdmin
         $nasabah = new Nasabah();
+        $nasabah->user_id      = $user->id;
         $nasabah->kode_nasabah = $kode;
         $nasabah->nama         = $namaInput;
         $nasabah->alamat       = $alamatInput;
         $nasabah->no_hp        = $noHpInput; 
-        $nasabah->saldo        = 0; // Saldo awal 0
-        $nasabah->rt           = '00'; 
-        $nasabah->rw           = '00';
+        $nasabah->rt           = $rtInput; 
+        $nasabah->rw           = $rwInput;
+        $nasabah->nomor_rumah  = $nomorRumahInput;
+        $nasabah->saldo        = 0;
         $nasabah->save();
 
-        // 4. Inisialisasi saldo awal nasabah di tabel SaldoNasabah
+        // 6. Inisialisasi saldo di tabel SaldoNasabah
         SaldoNasabah::create([
             'nasabah_id' => $nasabah->id,
             'saldo'      => 0
         ]);
 
-        // 5. Kembalikan ke halaman data nasabah
-        return redirect('/nasabah-ui')->with('success', 'Nasabah baru atas nama ' . $namaInput . ' berhasil ditambahkan.');
+        // 7. Redirect Sukses
+        return redirect('/nasabah-ui')->with('success', 'Nasabah baru ' . $namaInput . ' (' . $kode . ') berhasil ditambahkan.');
     }
 
     /**

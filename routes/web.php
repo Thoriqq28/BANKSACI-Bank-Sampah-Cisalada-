@@ -57,8 +57,8 @@ Route::post('/forgot-password', function (Request $request) {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
-    // Menerima GET & POST untuk mencegah error 405 Method Not Allowed
-    Route::match(['get', 'post'], '/nasabah-ui', [NasabahController::class, 'index'])->name('nasabah-ui.index');
+    // Tampilan Tabel Data Nasabah
+    Route::get('/nasabah-ui', [NasabahController::class, 'index'])->name('nasabah-ui.index');
 });
 
 
@@ -99,7 +99,8 @@ Route::middleware(['auth', 'role:admin,petugas'])->group(function () {
     // 👤 UI Data Nasabah (Custom Endpoints CRUD)
     // ----------------------------------------------------------------------
     Route::get('/nasabah-ui/tambah', [NasabahController::class, 'create'])->name('nasabah-ui.create');
-    Route::post('/nasabah-ui/tambah', [NasabahController::class, 'store'])->name('nasabah-ui.store');
+    Route::post('/nasabah-ui', [NasabahController::class, 'store'])->name('nasabah-ui.store'); // Menerima POST dari form tambah
+    Route::post('/nasabah-ui/tambah', [NasabahController::class, 'store']); // Fallback route
     Route::get('/nasabah-ui/{nasabah}/edit', [NasabahController::class, 'edit'])->name('nasabah-ui.edit');
     Route::put('/nasabah-ui/{nasabah}', [NasabahController::class, 'update'])->name('nasabah-ui.update');
     Route::delete('/nasabah-ui/{nasabah}', [NasabahController::class, 'destroy'])->name('nasabah-ui.destroy');
@@ -208,7 +209,7 @@ Route::middleware(['auth', 'role:admin,petugas'])->group(function () {
 
             DB::commit();
 
-            return redirect('/setoran-ui')->with('success', 'Setoran sampah berhasil ditambahkan dengan kalkulasi harga Rp ' . number_format($totalHarga, 0, ',', '.'));
+            return redirect('/nasabah-ui')->with('success', 'Setoran sampah berhasil ditambahkan dengan kalkulasi harga Rp ' . number_format($totalHarga, 0, ',', '.'));
 
         } catch (\Exception $e) {
             DB::rollBack();
