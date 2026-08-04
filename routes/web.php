@@ -14,7 +14,7 @@ use App\Http\Controllers\PenarikanController;
 use App\Http\Controllers\UserDashboardController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\LaporanController;
-use App\Http\Controllers\NotificationController; // <-- 🔔 Tambahan Import
+use App\Http\Controllers\NotificationController;
 
 // Models
 use App\Models\Nasabah;
@@ -53,6 +53,16 @@ Route::post('/forgot-password', function (Request $request) {
 
 /*
 |--------------------------------------------------------------------------
+| 🔓 ENDPOINT AKSES UMUM (Pengguna Terautentikasi)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->group(function () {
+    Route::get('/nasabah-ui', [NasabahController::class, 'index'])->name('nasabah-ui.index');
+});
+
+
+/*
+|--------------------------------------------------------------------------
 | 👑 GRUP 1: HANYA UNTUK ADMIN & PETUGAS (MANAJEMEN & UI STAF)
 |--------------------------------------------------------------------------
 */
@@ -85,17 +95,14 @@ Route::middleware(['auth', 'role:admin,petugas'])->group(function () {
     Route::post('/admin/ganti-password', [PasswordController::class, 'updatePasswordAdmin'])->name('password.admin.update');
 
     // ----------------------------------------------------------------------
-// 👤 UI Data Nasabah (Custom Endpoints)
-// ----------------------------------------------------------------------
-// Diubah menjadi Route::match agar aman jika ada request POST pengalihan dari form
-Route::get('/nasabah-ui', [NasabahController::class, 'index'])->name('nasabah-ui.index');
-
-Route::get('/nasabah-ui/tambah', [NasabahController::class, 'create'])->name('nasabah-ui.create');
-Route::post('/nasabah-ui/tambah', [NasabahController::class, 'store'])->name('nasabah-ui.store');
-Route::get('/nasabah-ui/{nasabah}/edit', [NasabahController::class, 'edit'])->name('nasabah-ui.edit');
-Route::put('/nasabah-ui/{nasabah}', [NasabahController::class, 'update'])->name('nasabah-ui.update');
-Route::delete('/nasabah-ui/{nasabah}', [NasabahController::class, 'destroy'])->name('nasabah-ui.destroy');
-Route::get('/nasabah-ui/delete/{nasabah}', [NasabahController::class, 'destroy']);
+    // 👤 UI Data Nasabah (Custom Endpoints CRUD)
+    // ----------------------------------------------------------------------
+    Route::get('/nasabah-ui/tambah', [NasabahController::class, 'create'])->name('nasabah-ui.create');
+    Route::post('/nasabah-ui/tambah', [NasabahController::class, 'store'])->name('nasabah-ui.store');
+    Route::get('/nasabah-ui/{nasabah}/edit', [NasabahController::class, 'edit'])->name('nasabah-ui.edit');
+    Route::put('/nasabah-ui/{nasabah}', [NasabahController::class, 'update'])->name('nasabah-ui.update');
+    Route::delete('/nasabah-ui/{nasabah}', [NasabahController::class, 'destroy'])->name('nasabah-ui.destroy');
+    Route::get('/nasabah-ui/delete/{nasabah}', [NasabahController::class, 'destroy']);
 
     // ----------------------------------------------------------------------
     // 🗑️ UI Master Sampah / Kategori
@@ -137,7 +144,6 @@ Route::get('/nasabah-ui/delete/{nasabah}', [NasabahController::class, 'destroy']
             return redirect()->back()->withErrors(['sampah_id' => 'Jenis sampah tidak ditemukan.'])->withInput(); 
         }
 
-        // Peta Harga Acuan Resmi Dashboard User
         $hargaAcuanMap = [
             'kertas'  => 1500,
             'kardus'  => 1500,
@@ -150,11 +156,9 @@ Route::get('/nasabah-ui/delete/{nasabah}', [NasabahController::class, 'destroy']
             'tembaga' => 12000,
         ];
 
-        // 1. Ambil harga dari Database jika bernilai positif
         $hargaPerKg = $sampahData->harga_per_kg ?? $sampahData->harga ?? 0;
-
-        // 2. Ekstrak string jika nama berisi format pipa ("Kertas|Kardus|1500") atau cocokkan kata kunci
         $namaLower = strtolower($sampahData->nama);
+
         if (str_contains($namaLower, '|')) {
             $parts = explode('|', $namaLower);
             $hargaPerKg = (int) trim(end($parts));
@@ -167,7 +171,6 @@ Route::get('/nasabah-ui/delete/{nasabah}', [NasabahController::class, 'destroy']
             }
         }
 
-        // Fallback default jika tidak ada pencocokan
         if ($hargaPerKg <= 0) {
             $hargaPerKg = 1500;
         }
@@ -176,7 +179,6 @@ Route::get('/nasabah-ui/delete/{nasabah}', [NasabahController::class, 'destroy']
 
         DB::beginTransaction();
         try {
-            // 1. Simpan Transaksi Utama Setoran (tabel: setoran)
             $setoranId = DB::table('setoran')->insertGetId([
                 'nasabah_id'  => $req->nasabah_id,
                 'user_id'     => auth()->id() ?? 1,
@@ -187,7 +189,6 @@ Route::get('/nasabah-ui/delete/{nasabah}', [NasabahController::class, 'destroy']
                 'updated_at'  => now(),
             ]);
 
-            // 2. Simpan Detail Setoran ke tabel `setoran_detail`
             DB::table('setoran_detail')->insert([
                 'setoran_id'      => $setoranId,
                 'jenis_sampah_id' => $req->sampah_id,
@@ -198,7 +199,6 @@ Route::get('/nasabah-ui/delete/{nasabah}', [NasabahController::class, 'destroy']
                 'updated_at'      => now(),
             ]);
 
-            // 3. Update Saldo Nasabah
             $nasabah = Nasabah::find($req->nasabah_id);
             if ($nasabah) { 
                 $nasabah->saldo += $totalHarga; 
@@ -273,7 +273,6 @@ Route::get('/nasabah-ui/delete/{nasabah}', [NasabahController::class, 'destroy']
 | 👤 GRUP 2: KHUSUS WARGA / NASABAH / USER
 |--------------------------------------------------------------------------
 */
-// Mengizinkan 'nasabah' maupun 'user' agar tidak tertahan middleware saat login
 Route::middleware(['auth', 'role:nasabah,user'])->group(function () {
     
     Route::get('/dashboard-user', [UserDashboardController::class, 'index'])->name('user.dashboard-alternatif');
@@ -288,6 +287,6 @@ Route::middleware(['auth', 'role:nasabah,user'])->group(function () {
     // Katalog Sampah Sisi Warga
     Route::get('/katalog-sampah', [KategoriSampahController::class, 'katalog'])->name('user.katalog');
 
-    // 🔔 Fitur Lonceng Notifikasi (Menandai Semua Notifikasi Dibaca)
+    // 🔔 Fitur Lonceng Notifikasi
     Route::post('/notifications/mark-all-as-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
 });

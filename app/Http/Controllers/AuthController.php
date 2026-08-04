@@ -25,9 +25,6 @@ class AuthController extends Controller
     /**
      * Memproses autentikasi login.
      */
-    /**
-     * Memproses autentikasi login.
-     */
     public function login(Request $request)
     {
         // 1. Validasi Input
@@ -57,7 +54,7 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $request->remember)) {
             $request->session()->regenerate();
 
-            // Redirect aman: Bersihkan POST request & alihkan berdasarkan role
+            // Redirect aman menggunakan route standar Laravel
             return $this->redirectByUserRole(Auth::user());
         }
 
@@ -71,25 +68,24 @@ class AuthController extends Controller
      * Menentukan halaman tujuan berdasarkan Role Pengguna.
      */
     protected function redirectByUserRole($user)
-{
-    $role = strtolower(trim($user->role ?? ''));
+    {
+        $role = strtolower(trim($user->role ?? ''));
 
-    // Menggunakan redirect()->to() dengan status HTTP 303 (See Other)
-    // Status 303 MEMAKSA browser mengubah POST menjadi GET
-    switch ($role) {
-        case 'admin':
-            return redirect()->to(route('dashboard.admin'), 303);
+        switch ($role) {
+            case 'admin':
+                return redirect()->route('dashboard.admin');
 
-        case 'petugas':
-            return redirect()->to(route('dashboard.petugas'), 303);
+            case 'petugas':
+                return redirect()->route('dashboard.petugas');
 
-        case 'nasabah':
-        case 'user':
-        case 'warga':
-        default:
-            return redirect()->to(route('dashboard.user'), 303);
+            case 'nasabah':
+            case 'user':
+            case 'warga':
+            default:
+                return redirect()->route('dashboard.user');
+        }
     }
-}
+
     /**
      * Menampilkan halaman registrasi.
      */
