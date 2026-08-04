@@ -25,6 +25,9 @@ class AuthController extends Controller
     /**
      * Memproses autentikasi login.
      */
+    /**
+     * Memproses autentikasi login.
+     */
     public function login(Request $request)
     {
         // 1. Validasi Input
@@ -43,7 +46,7 @@ class AuthController extends Controller
                 ->withErrors(['email' => 'Email ini belum terdaftar di sistem kami.']);
         }
 
-        // Pengecekan B: Password Tidak Cocok (Misal belum di-hash di DB)
+        // Pengecekan B: Password Tidak Cocok
         if (!Hash::check($request->password, $user->password)) {
             return back()
                 ->withInput($request->only('email'))
@@ -54,7 +57,7 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $request->remember)) {
             $request->session()->regenerate();
 
-            // Redirect pengguna berdasarkan role-nya
+            // Redirect aman: Bersihkan POST request & alihkan berdasarkan role
             return $this->redirectByUserRole(Auth::user());
         }
 
@@ -68,28 +71,25 @@ class AuthController extends Controller
      * Menentukan halaman tujuan berdasarkan Role Pengguna.
      */
     protected function redirectByUserRole($user)
-    {
-        // Ambil role dan ubah ke huruf kecil untuk konsistensi
-        $role = strtolower(trim($user->role ?? ''));
+{
+    $role = strtolower(trim($user->role ?? ''));
 
-        switch ($role) {
-            case 'admin':
-                return redirect()->route('dashboard.admin');
+    // Menggunakan redirect()->to() dengan status HTTP 303 (See Other)
+    // Status 303 MEMAKSA browser mengubah POST menjadi GET
+    switch ($role) {
+        case 'admin':
+            return redirect()->to(route('dashboard.admin'), 303);
 
-            case 'petugas':
-                return redirect()->route('dashboard.petugas');
+        case 'petugas':
+            return redirect()->to(route('dashboard.petugas'), 303);
 
-            case 'nasabah':
-            case 'user':
-            case 'warga':
-                return redirect()->route('dashboard.user');
-
-            default:
-                // Jika role tidak terdefinisi/kosong, tetap ke dashboard user atau landing page
-                return redirect()->route('dashboard.user');
-        }
+        case 'nasabah':
+        case 'user':
+        case 'warga':
+        default:
+            return redirect()->to(route('dashboard.user'), 303);
     }
-
+}
     /**
      * Menampilkan halaman registrasi.
      */

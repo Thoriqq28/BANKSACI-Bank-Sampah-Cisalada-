@@ -88,7 +88,7 @@ Route::middleware(['auth', 'role:admin,petugas'])->group(function () {
 // 👤 UI Data Nasabah (Custom Endpoints)
 // ----------------------------------------------------------------------
 // Diubah menjadi Route::match agar aman jika ada request POST pengalihan dari form
-Route::match(['get', 'post'], '/nasabah-ui', [NasabahController::class, 'index'])->name('nasabah-ui.index');
+Route::get('/nasabah-ui', [NasabahController::class, 'index'])->name('nasabah-ui.index');
 
 Route::get('/nasabah-ui/tambah', [NasabahController::class, 'create'])->name('nasabah-ui.create');
 Route::post('/nasabah-ui/tambah', [NasabahController::class, 'store'])->name('nasabah-ui.store');
