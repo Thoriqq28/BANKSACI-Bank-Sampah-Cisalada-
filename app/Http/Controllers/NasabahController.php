@@ -23,29 +23,23 @@ class NasabahController extends Controller
      */
     public function index()
     {
-        // Mengambil semua data nasabah
         $nasabahs = Nasabah::orderBy('created_at', 'desc')->get(); 
         
-        // AUTO-SYNC REAL-TIME:
+        // AUTO-SYNC REAL-TIME SALDO
         foreach ($nasabahs as $nasabah) {
-            // 1. Hitung total setoran
             $totalSetoran = Setoran::where('nasabah_id', $nasabah->id)->sum('total_harga');
 
-            // 2. Hitung total penarikan yang statusnya HANYA 'selesai'
             $totalPenarikanSelesai = Penarikan::where('nasabah_id', $nasabah->id)
                 ->whereRaw('LOWER(status) = ?', ['selesai'])
                 ->sum('jumlah');
 
-            // 3. Hitung saldo riil
             $saldoRealtime = max(0, $totalSetoran - $totalPenarikanSelesai);
 
-            // 4. Jika nilai di DB berbeda, update DB
             if ($nasabah->saldo != $saldoRealtime) {
                 $nasabah->saldo = $saldoRealtime;
                 $nasabah->save();
             }
 
-            // Update ke tabel SaldoNasabah jika terhubung
             SaldoNasabah::updateOrCreate(
                 ['nasabah_id' => $nasabah->id],
                 ['saldo' => $saldoRealtime]
@@ -56,7 +50,7 @@ class NasabahController extends Controller
     }
 
     /**
-     * Fitur Export Excel via Controller
+     * Fitur Export Excel
      */
     public function exportExcel()
     {
@@ -65,20 +59,19 @@ class NasabahController extends Controller
     }
 
     /**
-     * Menampilkan detail informasi nasabah beserta kalkulasi saldo
+     * Menampilkan detail informasi nasabah
      */
     public function show($id)
     {
         $nasabah = Nasabah::findOrFail($id);
 
-        $totalSetoran = DB::table('setorans')
+        $totalSetoran = DB::table('setoran')
             ->where('nasabah_id', $nasabah->id)
-            ->orWhere('user_id', $nasabah->user_id ?? $nasabah->id)
             ->sum('total_harga');
 
         $totalPenarikanSelesai = 0;
-        if (Schema::hasTable('penarikans')) {
-            $totalPenarikanSelesai = DB::table('penarikans')
+        if (Schema::hasTable('penarikan')) {
+            $totalPenarikanSelesai = DB::table('penarikan')
                 ->where('nasabah_id', $nasabah->id)
                 ->whereRaw('LOWER(status) = ?', ['selesai'])
                 ->sum('jumlah') ?? 0;
@@ -107,7 +100,7 @@ class NasabahController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validasi Input
+        // 1. Validasi Input Form
         $request->validate([
             'nama'   => 'required|string|max:255',
             'no_hp'  => 'required|string|max:20',
@@ -116,11 +109,11 @@ class NasabahController extends Controller
             'alamat' => 'required|string',
         ]);
 
-        $namaInput       = $request->nama ?? 'Warga Tanpa Nama';
-        $noHpInput       = $request->no_hp ?? '-';
-        $alamatInput     = $request->alamat ?? '-';
-        $rtInput         = $request->rt ?? '00';
-        $rwInput         = $request->rw ?? '00';
+        $namaInput       = $request->nama;
+        $noHpInput       = $request->no_hp;
+        $alamatInput     = $request->alamat;
+        $rtInput         = $request->rt;
+        $rwInput         = $request->rw;
         $nomorRumahInput = $request->nomor_rumah ?? null;
 
         try {
@@ -128,10 +121,10 @@ class NasabahController extends Controller
 
             DB::transaction(function () use ($namaInput, $noHpInput, $alamatInput, $rtInput, $rwInput, $nomorRumahInput, &$kodeTerpakai) {
                 
-                // Deteksi nama tabel dinamis (nasabah / nasabahs)
-                $tableName = Schema::hasTable('nasabahs') ? 'nasabahs' : 'nasabah';
+                // Cek nama tabel yang digunakan di DB (nasabah / nasabahs)
+                $tableName = Schema::hasTable('nasabah') ? 'nasabah' : 'nasabahs';
 
-                // Generasi Kode Nasabah
+                // Hitung urutan angka tertinggi dari kode_nasabah
                 $maxNumber = DB::table($tableName)
                     ->where('kode_nasabah', 'LIKE', 'BS-%')
                     ->lockForUpdate()
@@ -148,11 +141,11 @@ class NasabahController extends Controller
 
                 $kodeTerpakai = $kode;
 
-                // Format Email Unik dengan Timestamp + Random agar Tidak Pernah Duplicate Key
+                // Buat Email Unik untuk Akun User Login Nasabah
                 $cleanName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $namaInput));
                 $uniqueEmail = ($cleanName ?: 'nasabah') . time() . rand(10, 99) . '@banksaci.com';
 
-                // Buat User Account
+                // 1. Tambah ke tabel Users
                 $user = User::create([
                     'name'     => $namaInput,
                     'email'    => $uniqueEmail,
@@ -160,7 +153,7 @@ class NasabahController extends Controller
                     'role'     => 'nasabah',
                 ]);
 
-                // Simpan Data Nasabah
+                // 2. Tambah ke tabel Nasabah
                 $nasabah = Nasabah::create([
                     'user_id'      => $user->id,
                     'kode_nasabah' => $kode,
@@ -173,23 +166,23 @@ class NasabahController extends Controller
                     'saldo'        => 0,
                 ]);
 
-                // Inisialisasi Saldo
+                // 3. Inisialisasi Saldo
                 SaldoNasabah::create([
                     'nasabah_id' => $nasabah->id,
                     'saldo'      => 0
                 ]);
-            }, 3);
+            });
 
             return redirect('/nasabah-ui')->with('success', 'Nasabah baru ' . $namaInput . ' (' . $kodeTerpakai . ') berhasil ditambahkan.');
 
         } catch (\Exception $e) {
-            // Tampilkan error riil jika terjadi kegagalan sistem
-            return redirect()->back()->withErrors(['error' => 'Gagal menyimpan data: ' . $e->getMessage()])->withInput();
+            // JIKA GAGAL: Kembalikan pesan error ASLI dari database agar kita tahu kendalanya
+            return redirect()->back()->withErrors(['error' => 'Gagal menyimpan: ' . $e->getMessage()])->withInput();
         }
     }
 
     /**
-     * Menampilkan form edit nasabah
+     * Form edit nasabah
      */
     public function edit(Nasabah $nasabah)
     {
@@ -197,7 +190,7 @@ class NasabahController extends Controller
     }
 
     /**
-     * Mengupdate data nasabah
+     * Update data nasabah
      */
     public function update(Request $request, Nasabah $nasabah)
     {
@@ -211,24 +204,16 @@ class NasabahController extends Controller
 
         $nasabah->update($request->all());
 
-        if ($request->header('referer') && str_contains($request->header('referer'), 'nasabah-ui')) {
-            return redirect('/nasabah-ui')->with('success', 'Data Nasabah berhasil diupdate.');
-        }
-
-        return redirect()->route('nasabah.index')->with('success', 'Data Nasabah berhasil diupdate.');
+        return redirect('/nasabah-ui')->with('success', 'Data Nasabah berhasil diupdate.');
     }
 
     /**
-     * Menghapus data nasabah
+     * Hapus data nasabah
      */
     public function destroy(Nasabah $nasabah)
     {
         $nasabah->delete();
 
-        if (request()->header('referer') && str_contains(request()->header('referer'), 'nasabah-ui')) {
-            return redirect('/nasabah-ui')->with('success', 'Nasabah berhasil dihapus.');
-        }
-
-        return redirect()->route('nasabah.index')->with('success', 'Nasabah berhasil dihapus.');
+        return redirect('/nasabah-ui')->with('success', 'Nasabah berhasil dihapus.');
     }
 }
